@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Player</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f0f0f; color: #f1f1f1; display: flex; flex-direction: column; align-items: center; padding: 10px; margin: 0; }
+        .wrapper { background: #1a1a1a; padding: 20px; border-radius: 12px; max-width: 860px; width: 95%; margin-top: 10px; border: 1px solid #333; }
+        .input-row { display: flex; gap: 8px; margin-bottom: 15px; }
+        input[type="text"] { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #333; background: #2a2a2a; color: #fff; outline: none; font-size: 14px; }
+        #player-box { position: relative; width: 100%; padding-top: 56.25%; background: #000; margin-bottom: 15px; border-radius: 6px; overflow: hidden; }
+        #player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        
+        .time-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #262626; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+        .time-item { display: flex; flex-direction: column; gap: 5px; }
+        .time-item label { font-size: 11px; color: #888; text-transform: uppercase; }
+        .time-ctrls { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+        .time-ctrls input { width: 60px; padding: 6px; border-radius: 4px; border: 1px solid #444; background: #0f0f0f; color: #fff; font-size: 13px; }
+        
+        button { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; transition: opacity 0.2s; }
+        button:hover { opacity: 0.8; }
+        .btn-load { background: #cc0000; color: white; }
+        .btn-set { background: #3ea6ff; color: white; flex: 1; min-width: 60px; }
+        .btn-jump { background: #444; color: white; }
+        .btn-clear { background: #2a2a2a; color: #888; }
+        
+        .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-bottom: 15px; }
+        .btn-nav { background: #333; color: #ccc; }
+        
+        .share-box { border-top: 1px solid #333; padding-top: 15px; text-align: center; }
+        #output-url { width: 100%; padding: 8px; margin-top: 10px; background: #0f0f0f; border: 1px solid #333; color: #aaa; font-family: monospace; font-size: 11px; border-radius: 4px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+    <div class="input-row">
+        <input type="text" id="v-url" placeholder="Paste URL here">
+        <button class="btn-load" onclick="loadV()">LOAD</button>
+    </div>
+
+    <div id="player-box">
+        <div id="player"></div>
+    </div>
+
+    <div class="time-panel">
+        <div class="time-item">
+            <label>Point A (sec)</label>
+            <div class="time-ctrls">
+                <input type="number" id="t-start" value="0">
+                <button class="btn-set" onclick="setT('start')">SET</button>
+                <button class="btn-jump" onclick="jumpT('start')">GO</button>
+                <button class="btn-clear" onclick="resetT('start')">×</button>
+            </div>
+        </div>
+        <div class="time-item">
+            <label>Point B (sec)</label>
+            <div class="time-ctrls">
+                <input type="number" id="t-end" value="0">
+                <button class="btn-set" onclick="setT('end')">SET</button>
+                <button class="btn-jump" onclick="jumpT('end')">GO</button>
+                <button class="btn-clear" onclick="resetT('end')">×</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="nav-grid">
+        <button class="btn-nav" onclick="sk(-60)">-1m</button>
+        <button class="btn-nav" onclick="sk(-30)">-30s</button>
+        <button class="btn-nav" onclick="sk(-10)">-10s</button>
+        <button class="btn-nav" onclick="sk(-5)">-5s</button>
+        <button class="btn-nav" onclick="sk(-3)">-3s</button>
+        <button class="btn-nav" onclick="sk(3)">+3s</button>
+        <button class="btn-nav" onclick="sk(5)">+5s</button>
+        <button class="btn-nav" onclick="sk(10)">+10s</button>
+        <button class="btn-nav" onclick="sk(30)">+30s</button>
+        <button class="btn-nav" onclick="sk(60)">+1m</button>
+    </div>
+
+    <div class="share-box">
+        <button class="btn-load" style="background: #333; width: 100%;" onclick="genUrl()">Generate Link</button>
+        <input type="text" id="output-url" readonly placeholder="Link will appear here">
+    </div>
+</div>
+
+<script>
+    let p;
+    let loop;
+
+    const tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+
+    function onYouTubeIframeAPIReady() {
+        const u = new URLSearchParams(window.location.search);
+        const v = u.get('v');
+        if (v) {
+            document.getElementById('t-start').value = u.get('s') || 0;
+            document.getElementById('t-end').value = u.get('e') || 0;
+            document.getElementById('v-url').value = "https://www.youtube.com/watch?v=" + v;
+            init(v);
+        }
+    }
+
+    function parseId(url) {
+        if (!url) return null;
+        const reg = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/|live\/)([^#\&\?]*).*/;
+        const m = url.match(reg);
+        return (m && m[2].length === 11) ? m[2] : (url.length === 11 ? url : null);
+    }
+
+    function init(vid) {
+        if (p) p.destroy();
+        p = new YT.Player('player', {
+            videoId: vid,
+            playerVars: { 'autoplay': 1, 'controls': 1, 'rel': 0, 'mute': 1 },
+            events: {
+                'onReady': (e) => {
+                    const s = parseFloat(document.getElementById('t-start').value);
+                    if (s > 0) e.target.seekTo(s);
+                    runLoop();
+                },
+                'onStateChange': (e) => {
+                    if (e.data == YT.PlayerState.PLAYING) runLoop();
+                }
+            }
+        });
+    }
+
+    function loadV() {
+        const id = parseId(document.getElementById('v-url').value);
+        if (id) init(id);
+    }
+
+    function setT(t) {
+        if (!p || typeof p.getCurrentTime !== 'function') return;
+        document.getElementById('t-' + t).value = Math.floor(p.getCurrentTime());
+    }
+
+    function resetT(t) { document.getElementById('t-' + t).value = 0; }
+
+    function jumpT(t) {
+        if (!p) return;
+        let v = parseFloat(document.getElementById('t-' + t).value);
+        if (t === 'end' && v > 2) v -= 2;
+        p.seekTo(v, true);
+        p.playVideo();
+    }
+
+    function sk(s) { if (p) p.seekTo(p.getCurrentTime() + s, true); }
+
+    function runLoop() {
+        if (loop) clearInterval(loop);
+        loop = setInterval(() => {
+            if (!p || p.getPlayerState() !== 1) return;
+            const s = parseFloat(document.getElementById('t-start').value);
+            const e = parseFloat(document.getElementById('t-end').value);
+            const n = p.getCurrentTime();
+            if (e > s && n >= e) p.seekTo(s);
+        }, 500);
+    }
+
+    function genUrl() {
+        const id = parseId(document.getElementById('v-url').value);
+        if (!id) return;
+        const s = document.getElementById('t-start').value;
+        const e = document.getElementById('t-end').value;
+        const base = window.location.href.split('?')[0];
+        const full = `${base}?v=${id}&s=${s}&e=${e}`;
+        const out = document.getElementById('output-url');
+        out.value = full;
+        out.select();
+        document.execCommand('copy');
+        alert("Copied to clipboard");
+    }
+</script>
+</body>
+</html>
