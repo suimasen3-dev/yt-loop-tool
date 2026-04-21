@@ -13,8 +13,13 @@
         #player-box { position: relative; width: 100%; padding-top: 56.25%; background: #000; margin-bottom: 5px; border-radius: 6px; overflow: hidden; }
         #player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
         
-        .trim-visualizer { width: 100%; height: 6px; background: #333; margin-bottom: 20px; border-radius: 3px; position: relative; overflow: hidden; }
+        .trim-visualizer { width: 100%; height: 6px; background: #333; margin-bottom: 15px; border-radius: 3px; position: relative; overflow: hidden; }
         #trim-bar { position: absolute; height: 100%; background: #ff0000; left: 0; width: 0; transition: 0.3s; }
+
+        .playback-ctrls { display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 15px; }
+        .btn-play { background: #fff; color: #000; width: 120px; height: 40px; border-radius: 20px; font-size: 14px; }
+        .btn-frame { background: #444; color: #fff; padding: 8px 15px; }
+        .btn-ss { background: #00c853; color: white; padding: 8px 20px; }
 
         .time-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #262626; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
         .time-item { display: flex; flex-direction: column; gap: 5px; }
@@ -22,21 +27,22 @@
         .time-ctrls { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
         .time-ctrls input { width: 95px; padding: 6px; border-radius: 4px; border: 1px solid #444; background: #0f0f0f; color: #fff; font-size: 13px; font-family: monospace; }
         
-        button { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; transition: opacity 0.2s; white-space: nowrap; outline: none; }
-        button:focus { outline: none; }
+        button { border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: opacity 0.2s; white-space: nowrap; outline: none; }
         button:hover { opacity: 0.8; }
-        .btn-load { background: #cc0000; color: white; }
-        .btn-paste { background: #444; color: white; }
-        .btn-set { background: #3ea6ff; color: white; flex: 1; min-width: 60px; }
-        .btn-jump { background: #555; color: white; }
-        .btn-clear { background: #2a2a2a; color: #888; }
-        .btn-reset-text { background: #2a2a2a; color: #ccc; font-size: 10px; }
+        .btn-load { background: #cc0000; color: white; padding: 10px 15px; }
+        .btn-paste { background: #444; color: white; padding: 10px 15px; }
+        .btn-set { background: #3ea6ff; color: white; flex: 1; min-width: 60px; padding: 8px; font-size: 12px; }
+        .btn-jump { background: #555; color: white; padding: 8px; font-size: 12px; }
+        .btn-clear { background: #2a2a2a; color: #888; padding: 8px; font-size: 12px; }
+        .btn-reset-text { background: #2a2a2a; color: #ccc; font-size: 10px; padding: 8px; }
         
         .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-bottom: 15px; }
-        .btn-nav { background: #333; color: #ccc; }
+        .btn-nav { background: #333; color: #ccc; padding: 8px; font-size: 11px; }
         
         .share-box { border-top: 1px solid #333; padding-top: 15px; text-align: center; }
-        #output-url { width: 100%; padding: 8px; margin-top: 10px; background: #0f0f0f; border: 1px solid #333; color: #aaa; font-family: monospace; font-size: 11px; border-radius: 4px; box-sizing: border-box; }
+        #output-url { width: 100%; padding: 10px; margin-top: 10px; background: #0f0f0f; border: 1px solid #333; color: #00ff41; font-family: monospace; font-size: 11px; border-radius: 4px; box-sizing: border-box; }
+        
+        canvas { display: none; } /* スクショ用隠し要素 */
     </style>
 </head>
 <body>
@@ -55,6 +61,13 @@
     
     <div class="trim-visualizer">
         <div id="trim-bar"></div>
+    </div>
+
+    <div class="playback-ctrls">
+        <button class="btn-frame" onclick="step(-0.033)">◁ 1コマ</button>
+        <button class="btn-play" id="play-pause" onclick="togglePlay()">再生 / 一時停止</button>
+        <button class="btn-frame" onclick="step(0.033)">1コマ ▷</button>
+        <button class="btn-ss" onclick="takeSS()">SS保存</button>
     </div>
 
     <div class="time-panel">
@@ -92,21 +105,23 @@
     </div>
 
     <div class="share-box">
-        <button class="btn-load" style="background: #333; width: 100%; height: 40px;" onclick="genUrl()">共有用URLを発行（クリップボードにコピー）</button>
-        <input type="text" id="output-url" readonly placeholder="ここにURLが表示されます">
+        <button class="btn-load" style="background: #333; width: 100%; height: 40px;" onclick="genUrl()">共有用URLを発行</button>
+        <input type="text" id="output-url" readonly>
     </div>
 </div>
+
+<canvas id="ss-canvas"></canvas>
 
 <script>
     let p;
     let loop;
+    let currentVId = "";
 
     const tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
     document.head.appendChild(tag);
 
     function focusP() {
-        // プレイヤーにフォーカスを戻す
         const iframe = document.getElementById('player');
         if (iframe) iframe.focus();
     }
@@ -129,7 +144,7 @@
         try {
             const text = await navigator.clipboard.readText();
             document.getElementById('v-url').value = text;
-        } catch (err) { alert('貼り付け許可が必要です'); }
+        } catch (err) { alert('Permission denied'); }
         focusP();
     }
 
@@ -152,6 +167,7 @@
     }
 
     function init(vid) {
+        currentVId = vid;
         if (p) p.destroy();
         p = new YT.Player('player', {
             videoId: vid,
@@ -179,6 +195,21 @@
             updateTrimBar();
             init(id);
         }
+    }
+
+    function togglePlay() {
+        if (!p) return;
+        const state = p.getPlayerState();
+        if (state == 1) p.pauseVideo();
+        else p.playVideo();
+        focusP();
+    }
+
+    function step(s) {
+        if (!p) return;
+        p.pauseVideo();
+        p.seekTo(p.getCurrentTime() + s, true);
+        focusP();
     }
 
     function setT(t) {
@@ -213,12 +244,10 @@
         const s = toSec(document.getElementById('t-start').value);
         const e = toSec(document.getElementById('t-end').value);
         const bar = document.getElementById('trim-bar');
-        
         if (e > s) {
             const left = (s / total) * 100;
             const width = ((e - s) / total) * 100;
-            bar.style.left = left + "%";
-            bar.style.width = width + "%";
+            bar.style.left = left + "%"; bar.style.width = width + "%";
         } else {
             bar.style.width = "0%";
         }
@@ -244,10 +273,18 @@
         const base = window.location.href.split('?')[0];
         const full = `${base}?v=${id}&s=${s}&e=${e}`;
         const out = document.getElementById('output-url');
-        out.value = full;
-        out.select();
-        document.execCommand('copy');
-        alert("共有用URLをコピーしました！");
+        out.value = full; out.select(); document.execCommand('copy');
+        alert("URLをコピーしました");
+        focusP();
+    }
+
+    // スクリーンショット機能
+    function takeSS() {
+        if (!p) return;
+        const videoId = currentVId;
+        const timestamp = Math.floor(p.getCurrentTime());
+        // YouTubeのサムネイルサーバーから現在の瞬間の画像を引っ張る試み (APIの制限上、動画そのもののキャプチャは複雑なためサムネイルで代用、または通知)
+        alert("YouTube APIの制限によりブラウザ側で動画の中身を直接保存することはできません。OS標準のスクリーンショット機能（Win+Shift+S 等）をご利用いただくのが最も高画質です。");
         focusP();
     }
 </script>
