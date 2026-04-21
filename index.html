@@ -17,9 +17,8 @@
         #trim-bar { position: absolute; height: 100%; background: #ff0000; left: 0; width: 0; transition: 0.3s; }
 
         .playback-ctrls { display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 15px; }
-        .btn-play { background: #fff; color: #000; width: 120px; height: 40px; border-radius: 20px; font-size: 14px; }
+        .btn-play { background: #fff; color: #000; width: 150px; height: 40px; border-radius: 20px; font-size: 14px; }
         .btn-frame { background: #444; color: #fff; padding: 8px 15px; }
-        .btn-ss { background: #00c853; color: white; padding: 8px 20px; }
 
         .time-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #262626; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
         .time-item { display: flex; flex-direction: column; gap: 5px; }
@@ -41,8 +40,6 @@
         
         .share-box { border-top: 1px solid #333; padding-top: 15px; text-align: center; }
         #output-url { width: 100%; padding: 10px; margin-top: 10px; background: #0f0f0f; border: 1px solid #333; color: #00ff41; font-family: monospace; font-size: 11px; border-radius: 4px; box-sizing: border-box; }
-        
-        canvas { display: none; } /* スクショ用隠し要素 */
     </style>
 </head>
 <body>
@@ -67,7 +64,6 @@
         <button class="btn-frame" onclick="step(-0.033)">◁ 1コマ</button>
         <button class="btn-play" id="play-pause" onclick="togglePlay()">再生 / 一時停止</button>
         <button class="btn-frame" onclick="step(0.033)">1コマ ▷</button>
-        <button class="btn-ss" onclick="takeSS()">SS保存</button>
     </div>
 
     <div class="time-panel">
@@ -97,11 +93,11 @@
         <button class="btn-nav" onclick="sk(-10)">-10秒</button>
         <button class="btn-nav" onclick="sk(-5)">-5秒</button>
         <button class="btn-nav" onclick="sk(-3)">-3秒</button>
-        <button class="btn-nav" onclick="sk(3)">+3秒</button>
-        <button class="btn-nav" onclick="sk(5)">+5秒</button>
-        <button class="btn-nav" onclick="sk(10)">+10秒</button>
-        <button class="btn-nav" onclick="sk(30)">+30秒</button>
         <button class="btn-nav" onclick="sk(60)">+1分</button>
+        <button class="btn-nav" onclick="sk(30)">+30秒</button>
+        <button class="btn-nav" onclick="sk(10)">+10秒</button>
+        <button class="btn-nav" onclick="sk(5)">+5秒</button>
+        <button class="btn-nav" onclick="sk(3)">+3秒</button>
     </div>
 
     <div class="share-box">
@@ -110,12 +106,9 @@
     </div>
 </div>
 
-<canvas id="ss-canvas"></canvas>
-
 <script>
     let p;
     let loop;
-    let currentVId = "";
 
     const tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
@@ -167,7 +160,6 @@
     }
 
     function init(vid) {
-        currentVId = vid;
         if (p) p.destroy();
         p = new YT.Player('player', {
             videoId: vid,
@@ -274,17 +266,7 @@
         const full = `${base}?v=${id}&s=${s}&e=${e}`;
         const out = document.getElementById('output-url');
         out.value = full; out.select(); document.execCommand('copy');
-        alert("URLをコピーしました");
-        focusP();
-    }
-
-    // スクリーンショット機能
-    function takeSS() {
-        if (!p) return;
-        const videoId = currentVId;
-        const timestamp = Math.floor(p.getCurrentTime());
-        // YouTubeのサムネイルサーバーから現在の瞬間の画像を引っ張る試み (APIの制限上、動画そのもののキャプチャは複雑なためサムネイルで代用、または通知)
-        alert("YouTube APIの制限によりブラウザ側で動画の中身を直接保存することはできません。OS標準のスクリーンショット機能（Win+Shift+S 等）をご利用いただくのが最も高画質です。");
+        alert("共有用URLをコピーしました");
         focusP();
     }
 </script>
