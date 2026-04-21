@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Player</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f0f0f; color: #f1f1f1; display: flex; flex-direction: column; align-items: center; padding: 10px; margin: 0; }
+        body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background: #0f0f0f; color: #f1f1f1; display: flex; flex-direction: column; align-items: center; padding: 10px; margin: 0; }
         .wrapper { background: #1a1a1a; padding: 20px; border-radius: 12px; max-width: 860px; width: 95%; margin-top: 10px; border: 1px solid #333; }
         .input-row { display: flex; gap: 8px; margin-bottom: 15px; align-items: center; }
         input[type="text"] { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #333; background: #2a2a2a; color: #fff; outline: none; font-size: 14px; }
@@ -13,22 +13,21 @@
         #player-box { position: relative; width: 100%; padding-top: 56.25%; background: #000; margin-bottom: 5px; border-radius: 6px; overflow: hidden; }
         #player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
         
-        /* 疑似トリムバー */
         .trim-visualizer { width: 100%; height: 6px; background: #333; margin-bottom: 20px; border-radius: 3px; position: relative; overflow: hidden; }
         #trim-bar { position: absolute; height: 100%; background: #ff0000; left: 0; width: 0; transition: 0.3s; }
 
         .time-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #262626; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
         .time-item { display: flex; flex-direction: column; gap: 5px; }
-        .time-item label { font-size: 11px; color: #888; text-transform: uppercase; }
+        .time-item label { font-size: 11px; color: #888; }
         .time-ctrls { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-        .time-ctrls input { width: 90px; padding: 6px; border-radius: 4px; border: 1px solid #444; background: #0f0f0f; color: #fff; font-size: 13px; font-family: monospace; }
+        .time-ctrls input { width: 95px; padding: 6px; border-radius: 4px; border: 1px solid #444; background: #0f0f0f; color: #fff; font-size: 13px; font-family: monospace; }
         
-        button { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; transition: opacity 0.2s; white-space: nowrap; }
+        button { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; transition: opacity 0.2s; white-space: nowrap; }
         button:hover { opacity: 0.8; }
         .btn-load { background: #cc0000; color: white; }
         .btn-paste { background: #444; color: white; }
         .btn-set { background: #3ea6ff; color: white; flex: 1; min-width: 60px; }
-        .btn-jump { background: #444; color: white; }
+        .btn-jump { background: #555; color: white; }
         .btn-clear { background: #2a2a2a; color: #888; }
         
         .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-bottom: 15px; }
@@ -42,10 +41,10 @@
 
 <div class="wrapper">
     <div class="input-row">
-        <input type="text" id="v-url" placeholder="Paste URL here">
+        <input type="text" id="v-url" placeholder="YouTubeのURLを貼り付け">
         <button class="btn-clear" onclick="document.getElementById('v-url').value=''">×</button>
-        <button class="btn-paste" onclick="pstV()">PASTE</button>
-        <button class="btn-load" onclick="loadV()">LOAD</button>
+        <button class="btn-paste" onclick="pstV()">貼り付け</button>
+        <button class="btn-load" onclick="loadV()">読み込み</button>
     </div>
 
     <div id="player-box">
@@ -58,41 +57,41 @@
 
     <div class="time-panel">
         <div class="time-item">
-            <label>Point A (Start)</label>
+            <label>開始地点 (時:分:秒)</label>
             <div class="time-ctrls">
                 <input type="text" id="t-start" value="00:00:00">
-                <button class="btn-set" onclick="setT('start')">SET</button>
-                <button class="btn-jump" onclick="jumpT('start')">GO</button>
+                <button class="btn-set" onclick="setT('start')">セット</button>
+                <button class="btn-jump" onclick="jumpT('start')">飛ぶ</button>
                 <button class="btn-clear" onclick="resetT('start')">×</button>
             </div>
         </div>
         <div class="time-item">
-            <label>Point B (End)</label>
+            <label>終了地点 (時:分:秒)</label>
             <div class="time-ctrls">
                 <input type="text" id="t-end" value="00:00:00">
-                <button class="btn-set" onclick="setT('end')">SET</button>
-                <button class="btn-jump" onclick="jumpT('end')">GO</button>
+                <button class="btn-set" onclick="setT('end')">セット</button>
+                <button class="btn-jump" onclick="jumpT('end')">飛ぶ</button>
                 <button class="btn-clear" onclick="resetT('end')">×</button>
             </div>
         </div>
     </div>
 
     <div class="nav-grid">
-        <button class="btn-nav" onclick="sk(-60)">-1m</button>
-        <button class="btn-nav" onclick="sk(-30)">-30s</button>
-        <button class="btn-nav" onclick="sk(-10)">-10s</button>
-        <button class="btn-nav" onclick="sk(-5)">-5s</button>
-        <button class="btn-nav" onclick="sk(-3)">-3s</button>
-        <button class="btn-nav" onclick="sk(3)">+3s</button>
-        <button class="btn-nav" onclick="sk(5)">+5s</button>
-        <button class="btn-nav" onclick="sk(10)">+10s</button>
-        <button class="btn-nav" onclick="sk(30)">+30s</button>
-        <button class="btn-nav" onclick="sk(60)">+1m</button>
+        <button class="btn-nav" onclick="sk(-60)">-1分</button>
+        <button class="btn-nav" onclick="sk(-30)">-30秒</button>
+        <button class="btn-nav" onclick="sk(-10)">-10秒</button>
+        <button class="btn-nav" onclick="sk(-5)">-5秒</button>
+        <button class="btn-nav" onclick="sk(-3)">-3秒</button>
+        <button class="btn-nav" onclick="sk(3)">+3秒</button>
+        <button class="btn-nav" onclick="sk(5)">+5秒</button>
+        <button class="btn-nav" onclick="sk(10)">+10秒</button>
+        <button class="btn-nav" onclick="sk(30)">+30秒</button>
+        <button class="btn-nav" onclick="sk(60)">+1分</button>
     </div>
 
     <div class="share-box">
-        <button class="btn-load" style="background: #333; width: 100%;" onclick="genUrl()">Generate Clip Link</button>
-        <input type="text" id="output-url" readonly placeholder="Link will appear here">
+        <button class="btn-load" style="background: #333; width: 100%; height: 40px;" onclick="genUrl()">共有用URLを発行（クリップボードにコピー）</button>
+        <input type="text" id="output-url" readonly placeholder="ここにURLが表示されます">
     </div>
 </div>
 
@@ -122,7 +121,7 @@
         try {
             const text = await navigator.clipboard.readText();
             document.getElementById('v-url').value = text;
-        } catch (err) { alert('Access denied'); }
+        } catch (err) { alert('貼り付け許可が必要です'); }
     }
 
     function onYouTubeIframeAPIReady() {
@@ -187,7 +186,6 @@
 
     function sk(s) { if (p) p.seekTo(p.getCurrentTime() + s, true); }
 
-    // 疑似トリムバーの更新
     function updateTrimBar() {
         if (!p || typeof p.getDuration !== 'function') return;
         const total = p.getDuration();
@@ -212,13 +210,8 @@
             const s = toSec(document.getElementById('t-start').value);
             const e = toSec(document.getElementById('t-end').value);
             const n = p.getCurrentTime();
-            
-            // 範囲外（後ろ）に行ったら戻す
             if (e > s && n >= e) p.seekTo(s);
-            
-            // 範囲外（前）にシークされたら戻す
             if (e > s && n < s - 1) p.seekTo(s); 
-            
         }, 500);
     }
 
@@ -233,7 +226,7 @@
         out.value = full;
         out.select();
         document.execCommand('copy');
-        alert("Clip Link Copied!");
+        alert("共有用URLをコピーしました！");
     }
 </script>
 </body>
