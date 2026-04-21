@@ -3,175 +3,271 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Player - Frame Out</title>
+    <title>Video Player</title>
     <style>
-        body { font-family: sans-serif; background: #0f0f0f; color: #f1f1f1; display: flex; flex-direction: column; align-items: center; padding: 10px; margin: 0; }
-        .wrapper { max-width: 860px; width: 95%; margin-top: 10px; }
+        body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background: #0f0f0f; color: #f1f1f1; display: flex; flex-direction: column; align-items: center; padding: 10px; margin: 0; }
+        .wrapper { background: #1a1a1a; padding: 20px; border-radius: 12px; max-width: 860px; width: 95%; margin-top: 10px; border: 1px solid #333; }
+        .input-row { display: flex; gap: 8px; margin-bottom: 15px; align-items: center; }
+        input[type="text"] { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #333; background: #2a2a2a; color: #fff; outline: none; font-size: 14px; }
         
-        /* 動画エリア */
-        #player-box { position: relative; width: 100%; padding-top: 56.25%; background: #000; border-radius: 8px 8px 0 0; overflow: hidden; }
-        #player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: auto; }
-
-        /* 枠外操作バー (画像のようなデザイン) */
-        .external-controls {
-            background: #000; /* 真っ黒 */
-            padding: 10px 15px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            border-radius: 0 0 8px 8px;
-            border: 1px solid #333;
-            border-top: none;
-        }
-
-        .btn-icon { background: none; border: none; color: white; cursor: pointer; font-size: 18px; padding: 5px; display: flex; align-items: center; justify-content: center; }
-        .btn-icon:hover { color: #aaa; }
-
-        .time-display { font-family: monospace; font-size: 14px; color: #ddd; min-width: 80px; }
+        #player-box { position: relative; width: 100%; padding-top: 56.25%; background: #000; margin-bottom: 5px; border-radius: 6px; overflow: hidden; }
+        #player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
         
-        /* 疑似シークバー */
-        .seek-container { flex-grow: 1; height: 40px; display: flex; align-items: center; position: relative; cursor: pointer; }
-        .seek-bg { width: 100%; height: 4px; background: #333; border-radius: 2px; position: relative; }
-        .seek-current { height: 100%; background: #f00; border-radius: 2px; width: 0%; position: absolute; }
-        /* 以前作ったトリムバーもここに重ねられる */
-        #trim-indicator { height: 100%; background: rgba(62, 166, 255, 0.5); position: absolute; z-index: 1; }
+        .trim-visualizer { width: 100%; height: 6px; background: #333; margin-bottom: 15px; border-radius: 3px; position: relative; overflow: hidden; }
+        #trim-bar { position: absolute; height: 100%; background: #ff0000; left: 0; width: 0; transition: 0.3s; }
 
-        /* 設定パネルなど */
-        .panel { background: #1a1a1a; padding: 15px; border-radius: 12px; margin-top: 15px; border: 1px solid #333; }
-        .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 10px; }
-        button { border: none; border-radius: 4px; cursor: pointer; font-weight: bold; background: #333; color: #ccc; padding: 8px; font-size: 11px; }
-        .btn-main { background: #cc0000; color: white; }
+        .playback-ctrls { display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 15px; }
+        .btn-play { background: #fff; color: #000; width: 150px; height: 40px; border-radius: 20px; font-size: 14px; }
+        .btn-frame { background: #444; color: #fff; padding: 8px 15px; }
+
+        .time-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #262626; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+        .time-item { display: flex; flex-direction: column; gap: 5px; }
+        .time-item label { font-size: 11px; color: #888; }
+        .time-ctrls { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+        .time-ctrls input { width: 95px; padding: 6px; border-radius: 4px; border: 1px solid #444; background: #0f0f0f; color: #fff; font-size: 13px; font-family: monospace; }
+        
+        button { border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: opacity 0.2s; white-space: nowrap; outline: none; }
+        button:hover { opacity: 0.8; }
+        .btn-load { background: #cc0000; color: white; padding: 10px 15px; }
+        .btn-paste { background: #444; color: white; padding: 10px 15px; }
+        .btn-set { background: #3ea6ff; color: white; flex: 1; min-width: 60px; padding: 8px; font-size: 12px; }
+        .btn-jump { background: #555; color: white; padding: 8px; font-size: 12px; }
+        .btn-clear { background: #2a2a2a; color: #888; padding: 8px; font-size: 12px; }
+        .btn-reset-text { background: #2a2a2a; color: #ccc; font-size: 10px; padding: 8px; }
+        
+        .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-bottom: 15px; }
+        .btn-nav { background: #333; color: #ccc; padding: 8px; font-size: 11px; }
+        
+        .share-box { border-top: 1px solid #333; padding-top: 15px; text-align: center; }
+        #output-url { width: 100%; padding: 10px; margin-top: 10px; background: #0f0f0f; border: 1px solid #333; color: #00ff41; font-family: monospace; font-size: 11px; border-radius: 4px; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
 <div class="wrapper">
-    <div style="display:flex; gap:8px; margin-bottom:10px;">
-        <input type="text" id="v-url" style="flex:1; background:#2a2a2a; border:1px solid #333; color:white; padding:8px; border-radius:6px;" placeholder="URL...">
-        <button class="btn-main" onclick="loadV()">LOAD</button>
+    <div class="input-row">
+        <input type="text" id="v-url" placeholder="YouTubeのURLを貼り付け">
+        <button class="btn-clear" onclick="document.getElementById('v-url').value=''">×</button>
+        <button class="btn-paste" onclick="pstV()">貼り付け</button>
+        <button class="btn-load" onclick="loadV()">読み込み</button>
     </div>
 
     <div id="player-box">
         <div id="player"></div>
     </div>
     
-    <div class="external-controls">
-        <button class="btn-icon" onclick="togglePlay()" title="再生/一時停止">⏯</button>
-        <button class="btn-icon" onclick="step(-0.033)" title="1コマ戻る">◁</button>
-        <button class="btn-icon" onclick="step(0.033)" title="1コマ進む">▷</button>
-        
-        <div class="time-display" id="current-time-display">00:00:00</div>
-        
-        <div class="seek-container" onclick="seekByBar(event)">
-            <div class="seek-bg">
-                <div id="trim-indicator"></div>
-                <div class="seek-current" id="seek-progress"></div>
-            </div>
-        </div>
-
-        <button class="btn-icon" title="セット" onclick="setT('start')">🚩</button>
+    <div class="trim-visualizer">
+        <div id="trim-bar"></div>
     </div>
 
-    <div class="panel">
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-            <div>開始: <input type="text" id="t-start" value="00:00:00" style="width:70px;"> <button onclick="jumpT('start')">GO</button></div>
-            <div>終了: <input type="text" id="t-end" value="00:00:00" style="width:70px;"> <button onclick="jumpT('end')">GO</button></div>
+    <div class="playback-ctrls">
+        <button class="btn-frame" onclick="step(-0.033)">◁ 1コマ</button>
+        <button class="btn-play" id="play-pause" onclick="togglePlay()">再生 / 一時停止</button>
+        <button class="btn-frame" onclick="step(0.033)">1コマ ▷</button>
+    </div>
+
+    <div class="time-panel">
+        <div class="time-item">
+            <label>開始地点</label>
+            <div class="time-ctrls">
+                <input type="text" id="t-start" value="00:00:00">
+                <button class="btn-set" onclick="setT('start')">セット</button>
+                <button class="btn-jump" onclick="jumpT('start')">飛ぶ</button>
+                <button class="btn-reset-text" onclick="resetT('start')">Reset</button>
+            </div>
         </div>
-        <div class="nav-grid">
-            <button onclick="sk(-60)">-1m</button><button onclick="sk(-30)">-30s</button><button onclick="sk(-10)">-10s</button><button onclick="sk(-5)">-5s</button><button onclick="sk(-3)">-3s</button>
-            <button onclick="sk(60)">+1m</button><button onclick="sk(30)">+30s</button><button onclick="sk(10)">+10s</button><button onclick="sk(5)">+5s</button><button onclick="sk(3)">+3s</button>
+        <div class="time-item">
+            <label>終了地点</label>
+            <div class="time-ctrls">
+                <input type="text" id="t-end" value="00:00:00">
+                <button class="btn-set" onclick="setT('end')">セット</button>
+                <button class="btn-jump" onclick="jumpT('end')">飛ぶ</button>
+                <button class="btn-reset-text" onclick="resetT('end')">Reset</button>
+            </div>
         </div>
+    </div>
+
+    <div class="nav-grid">
+        <button class="btn-nav" onclick="sk(-60)">-1分</button>
+        <button class="btn-nav" onclick="sk(-30)">-30秒</button>
+        <button class="btn-nav" onclick="sk(-10)">-10秒</button>
+        <button class="btn-nav" onclick="sk(-5)">-5秒</button>
+        <button class="btn-nav" onclick="sk(-3)">-3秒</button>
+        <button class="btn-nav" onclick="sk(60)">+1分</button>
+        <button class="btn-nav" onclick="sk(30)">+30秒</button>
+        <button class="btn-nav" onclick="sk(10)">+10秒</button>
+        <button class="btn-nav" onclick="sk(5)">+5秒</button>
+        <button class="btn-nav" onclick="sk(3)">+3秒</button>
+    </div>
+
+    <div class="share-box">
+        <button class="btn-load" style="background: #333; width: 100%; height: 40px;" onclick="genUrl()">共有用URLを発行</button>
+        <input type="text" id="output-url" readonly>
     </div>
 </div>
 
 <script>
-    let p, loop;
+    let p;
+    let loop;
+
     const tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
     document.head.appendChild(tag);
 
+    function focusP() {
+        const iframe = document.getElementById('player');
+        if (iframe) iframe.focus();
+    }
+
     function fmt(s) {
-        const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = Math.floor(s % 60);
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = Math.floor(s % 60);
         return [h, m, sec].map(v => v.toString().padStart(2, '0')).join(':');
     }
 
     function toSec(str) {
         const parts = str.split(':').map(Number);
         if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+        if (parts.length === 2) return parts[0] * 60 + parts[1];
         return parts[0] || 0;
     }
 
-    function onYouTubeIframeAPIReady() {
-        const u = new URLSearchParams(window.location.search), v = u.get('v');
-        if (v) init(v, u.get('s'), u.get('e'));
+    async function pstV() {
+        try {
+            const text = await navigator.clipboard.readText();
+            document.getElementById('v-url').value = text;
+        } catch (err) { alert('Permission denied'); }
+        focusP();
     }
 
-    function init(vid, s=0, e=0) {
+    function onYouTubeIframeAPIReady() {
+        const u = new URLSearchParams(window.location.search);
+        const v = u.get('v');
+        if (v) {
+            document.getElementById('t-start').value = fmt(u.get('s') || 0);
+            document.getElementById('t-end').value = fmt(u.get('e') || 0);
+            document.getElementById('v-url').value = "https://www.youtube.com/watch?v=" + v;
+            init(v);
+        }
+    }
+
+    function parseId(url) {
+        if (!url) return null;
+        const reg = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/|live\/)([^#\&\?]*).*/;
+        const m = url.match(reg);
+        return (m && m[2].length === 11) ? m[2] : (url.length === 11 ? url : null);
+    }
+
+    function init(vid) {
         if (p) p.destroy();
         p = new YT.Player('player', {
             videoId: vid,
-            playerVars: { 'autoplay': 1, 'controls': 0, 'rel': 0 }, // controls:0 で公式バーを消す
+            playerVars: { 'autoplay': 1, 'controls': 1, 'rel': 0, 'mute': 0 },
             events: {
-                'onReady': (ev) => {
-                    if (s) ev.target.seekTo(s);
-                    document.getElementById('t-start').value = fmt(s);
-                    document.getElementById('t-end').value = fmt(e);
-                    runMonitor();
+                'onReady': (e) => {
+                    const s = toSec(document.getElementById('t-start').value);
+                    if (s > 0) e.target.seekTo(s);
+                    updateTrimBar();
+                    runLoop();
+                },
+                'onStateChange': (e) => {
+                    if (e.data == YT.PlayerState.PLAYING) runLoop();
                 }
             }
         });
     }
 
     function loadV() {
-        const reg = /^.*(youtu.be\/|v\/|watch\?v=|shorts\/|live\/)([^#\&\?]*).*/;
-        const m = document.getElementById('v-url').value.match(reg);
-        if (m) init(m[2]);
+        const id = parseId(document.getElementById('v-url').value);
+        if (id) {
+            document.getElementById('t-start').value = "00:00:00";
+            document.getElementById('t-end').value = "00:00:00";
+            document.getElementById('output-url').value = "";
+            updateTrimBar();
+            init(id);
+        }
     }
 
     function togglePlay() {
-        const s = p.getPlayerState();
-        s == 1 ? p.pauseVideo() : p.playVideo();
+        if (!p) return;
+        const state = p.getPlayerState();
+        if (state == 1) p.pauseVideo();
+        else p.playVideo();
+        focusP();
     }
 
-    function sk(s) { p.seekTo(p.getCurrentTime() + s, true); }
-    function step(s) { p.pauseVideo(); p.seekTo(p.getCurrentTime() + s, true); }
+    function step(s) {
+        if (!p) return;
+        p.pauseVideo();
+        p.seekTo(p.getCurrentTime() + s, true);
+        focusP();
+    }
 
-    function runMonitor() {
-        setInterval(() => {
-            if (!p || typeof p.getCurrentTime !== 'function') return;
-            const now = p.getCurrentTime();
-            const total = p.getDuration();
+    function setT(t) {
+        if (!p || typeof p.getCurrentTime !== 'function') return;
+        document.getElementById('t-' + t).value = fmt(p.getCurrentTime());
+        updateTrimBar();
+        focusP();
+    }
+
+    function resetT(t) { 
+        document.getElementById('t-' + t).value = "00:00:00";
+        updateTrimBar();
+        focusP();
+    }
+
+    function jumpT(t) {
+        if (!p) return;
+        let v = toSec(document.getElementById('t-' + t).value);
+        if (t === 'end' && v > 2) v -= 2;
+        p.seekTo(v, true);
+        focusP();
+    }
+
+    function sk(s) { 
+        if (p) p.seekTo(p.getCurrentTime() + s, true);
+        focusP();
+    }
+
+    function updateTrimBar() {
+        if (!p || typeof p.getDuration !== 'function') return;
+        const total = p.getDuration();
+        const s = toSec(document.getElementById('t-start').value);
+        const e = toSec(document.getElementById('t-end').value);
+        const bar = document.getElementById('trim-bar');
+        if (e > s) {
+            const left = (s / total) * 100;
+            const width = ((e - s) / total) * 100;
+            bar.style.left = left + "%"; bar.style.width = width + "%";
+        } else {
+            bar.style.width = "0%";
+        }
+    }
+
+    function runLoop() {
+        if (loop) clearInterval(loop);
+        loop = setInterval(() => {
+            if (!p || p.getPlayerState() !== 1) return;
             const s = toSec(document.getElementById('t-start').value);
             const e = toSec(document.getElementById('t-end').value);
-            
-            // UI更新
-            document.getElementById('current-time-display').innerText = fmt(now);
-            document.getElementById('seek-progress').style.width = (now / total * 100) + "%";
-            
-            // トリム表示更新
-            const indicator = document.getElementById('trim-indicator');
-            if (e > s) {
-                indicator.style.left = (s / total * 100) + "%";
-                indicator.style.width = ((e - s) / total * 100) + "%";
-                if (now >= e || now < s - 1) p.seekTo(s);
-            } else {
-                indicator.style.width = "0%";
-            }
+            const n = p.getCurrentTime();
+            if (e > s && n >= e) p.seekTo(s);
+            if (e > s && n < s - 1) p.seekTo(s); 
         }, 500);
     }
 
-    function seekByBar(ev) {
-        const rect = ev.currentTarget.getBoundingClientRect();
-        const pos = (ev.clientX - rect.left) / rect.width;
-        p.seekTo(p.getDuration() * pos, true);
-    }
-
-    function setT(type) {
-        document.getElementById('t-' + type).value = fmt(p.getCurrentTime());
-    }
-
-    function jumpT(type) {
-        p.seekTo(toSec(document.getElementById('t-' + type).value), true);
+    function genUrl() {
+        const id = parseId(document.getElementById('v-url').value);
+        if (!id) return;
+        const s = toSec(document.getElementById('t-start').value);
+        const e = toSec(document.getElementById('t-end').value);
+        const base = window.location.href.split('?')[0];
+        const full = `${base}?v=${id}&s=${s}&e=${e}`;
+        const out = document.getElementById('output-url');
+        out.value = full; out.select(); document.execCommand('copy');
+        alert("共有用URLをコピーしました");
+        focusP();
     }
 </script>
 </body>
