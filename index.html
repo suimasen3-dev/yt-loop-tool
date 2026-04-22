@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Video Player - Professional Adjust</title>
+    <title>Video Player - Pro Scroll Update</title>
     <style>
         body { font-family: "Helvetica Neue", Arial, sans-serif; background: #0f0f0f; color: #f1f1f1; display: flex; flex-direction: column; align-items: center; padding: 5px; margin: 0; }
         .wrapper { background: #1a1a1a; padding: 12px 15px; border-radius: 12px; max-width: 900px; width: 96%; border: 1px solid #333; margin-top: 5px; box-sizing: border-box; }
@@ -21,19 +21,24 @@
         .zoom-ctrls { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 6px; font-size: 11px; color: #aaa; }
         .zoom-ctrls button { padding: 2px 10px; background: #444; color: #fff; border-radius: 4px; font-weight: bold; }
 
-        .zoom-viewport { width: 100%; height: 35px; background: #222; border: 1px solid #444; position: relative; overflow-x: auto; overflow-y: hidden; margin-bottom: 12px; }
+        /* ズームシークバー本体：スクロールバーを隠す */
+        .zoom-viewport { width: 100%; height: 35px; background: #222; border: 1px solid #444; position: relative; overflow-x: scroll; overflow-y: hidden; margin-bottom: 0px; }
+        .zoom-viewport::-webkit-scrollbar { display: none; } /* PCでは隠して下に自作を表示 */
+        
         .zoom-content { height: 100%; position: relative; min-width: 100%; }
         #zoom-trim-bar { position: absolute; height: 100%; background: #ff0000; opacity: 0.2; pointer-events: none; }
         #zoom-play-head { position: absolute; height: 100%; width: 2px; background: #fff; z-index: 5; pointer-events: none; }
         .trim-handle { position: absolute; height: 100%; width: 12px; top: 0; z-index: 10; cursor: ew-resize; display: flex; justify-content: center; }
         .trim-handle::after { content: ''; width: 2px; height: 100%; background: #3ea6ff; box-shadow: 0 0 6px #3ea6ff; }
 
-        /* --- 基本設定（PC向け） --- */
+        /* 追加：独立スクロールバー（PCのみ表示） */
+        .scroll-container { width: 100%; height: 12px; overflow-x: scroll; overflow-y: hidden; margin-bottom: 12px; display: block; }
+        .scroll-dummy { height: 1px; }
+
         button { border: none; cursor: pointer; transition: 0.2s; font-weight: bold; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
         button:hover { opacity: 0.8; }
 
         .playback-ctrls { display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 10px; width: 100%; }
-        /* 1段目の高さ統一 */
         .btn-play { background: #fff; color: #000; width: 160px; height: 44px; border-radius: 22px; font-size: 16px; font-weight: bold; flex-direction: column; }
         .btn-speed { background: #333; color: #3ea6ff; height: 44px; padding: 0 12px; border-radius: 6px; font-size: 14px; min-width: 70px; }
         .btn-frame { background: #444; color: #fff; height: 44px; padding: 0 14px; border-radius: 4px; font-size: 14px; }
@@ -47,13 +52,11 @@
         .time-ctrls { display: flex; gap: 4px; align-items: center; flex: 1; }
         .time-ctrls input { width: 90px; height: 36px; padding: 0 6px; background: #0f0f0f; color: #fff; border: 1px solid #444; border-radius: 4px; font-family: monospace; font-size: 14px; box-sizing: border-box; }
         
-        /* 2段目の高さ統一 */
         .btn-set { background: #3ea6ff; color: white; height: 36px; font-size: 13px; border-radius: 4px; max-width: 60px; flex: 1; }
         .btn-jump { background: #555; color: white; height: 36px; padding: 0 12px; font-size: 13px; border-radius: 4px; }
         .btn-reset-text { background: #2a2a2a; color: #ccc; height: 36px; font-size: 12px; padding: 0 10px; border-radius: 4px; }
 
         .footer-area { border-top: 1px solid #333; padding-top: 12px; margin-top: 5px; width: 100%; }
-        /* 3段目の高さ統一 */
         .input-row { display: flex; gap: 6px; margin-bottom: 10px; align-items: center; width: 100%; }
         #v-url { flex: 1; min-width: 0; height: 40px; padding: 0 10px; background: #2a2a2a; border: 1px solid #333; color: #fff; border-radius: 6px; font-size: 14px; }
         .btn-sub { background: #444; color: white; height: 40px; padding: 0 16px; border-radius: 6px; font-size: 14px; }
@@ -62,7 +65,6 @@
 
         #output-url { width: 100%; padding: 8px; margin-top: 8px; background: #0f0f0f; border: 1px solid #333; color: #00ff41; font-family: monospace; font-size: 11px; border-radius: 4px; box-sizing: border-box; }
 
-        /* --- スマホ向け設定（現状維持＋秒表記対応） --- */
         @media (max-width: 600px) {
             .playback-ctrls { gap: 4px; }
             .btn-play { width: 130px; height: 38px; font-size: 11px; border-radius: 19px; }
@@ -73,9 +75,11 @@
             .time-item label { font-size: 11px; min-width: 25px; }
             .time-ctrls input { font-size: 12px; max-width: 85px; height: 32px; }
             .btn-set, .btn-jump, .btn-reset-text { font-size: 10px; height: 32px; max-width: none; }
-            .btn-reset-text { padding: 0 4px; }
             .btn-main, .btn-sub, .btn-clear-text { font-size: 12px; height: 36px; padding: 0 10px; }
             #v-url { height: 36px; }
+            .zoom-viewport { overflow-x: auto; margin-bottom: 12px; }
+            .zoom-viewport::-webkit-scrollbar { display: block; height: 4px; }
+            .scroll-container { display: none; } /* スマホは不要 */
         }
     </style>
 </head>
@@ -105,6 +109,10 @@
             <div class="trim-handle" id="h-start" onmousedown="dragH(event, 'start')"></div>
             <div class="trim-handle" id="h-end" onmousedown="dragH(event, 'end')"></div>
         </div>
+    </div>
+
+    <div class="scroll-container" id="scroll-bar-container" onscroll="syncView(this)">
+        <div class="scroll-dummy" id="scroll-bar-dummy"></div>
     </div>
 
     <div class="playback-ctrls">
@@ -245,7 +253,12 @@
     function updateZoom() {
         zoom = document.getElementById('zoom-slider').value;
         document.getElementById('zoom-val').innerText = zoom + "x";
-        document.getElementById('z-content').style.width = (zoom * 100) + "%";
+        const contentWidth = (zoom * 100);
+        document.getElementById('z-content').style.width = contentWidth + "%";
+        
+        // 自作スクロールバーの長さを同期
+        document.getElementById('scroll-bar-dummy').style.width = contentWidth + "%";
+        
         updateUI();
     }
 
@@ -253,6 +266,12 @@
         const s = document.getElementById('zoom-slider');
         s.value = Math.max(1, Math.min(100, parseInt(s.value) + d));
         updateZoom();
+    }
+
+    // スクロールバーとビューポートの同期（自作バーを動かした時）
+    function syncView(scroller) {
+        const viewport = document.getElementById('z-viewport');
+        viewport.scrollLeft = scroller.scrollLeft;
     }
 
     function updateUI() {
@@ -307,7 +326,10 @@
             
             if (zoom > 1 && p.getPlayerState() === 1) {
                 const vp = document.getElementById('z-viewport'), head = document.getElementById('zoom-play-head');
-                vp.scrollLeft = head.offsetLeft - vp.clientWidth / 2;
+                const scrollPos = head.offsetLeft - vp.clientWidth / 2;
+                vp.scrollLeft = scrollPos;
+                // 下の自作スクロールバーも同期
+                document.getElementById('scroll-bar-container').scrollLeft = scrollPos;
             }
             if (p.getPlayerState() === 1 && e > s && (n >= e || n < s - 1)) p.seekTo(s);
         }, 100);
