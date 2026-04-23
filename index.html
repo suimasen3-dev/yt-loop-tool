@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Video Player - Smart Zoom Center</title>
+    <title>YouTube Loop Tool - Final Polished</title>
     <style>
+        :root { --scrollbar-thumb: transparent; }
         body { font-family: "Helvetica Neue", Arial, sans-serif; background: #0f0f0f; color: #f1f1f1; display: flex; flex-direction: column; align-items: center; padding: 5px; margin: 0; }
         .wrapper { background: #1a1a1a; padding: 12px 15px; border-radius: 12px; max-width: 900px; width: 96%; border: 1px solid #333; margin-top: 5px; box-sizing: border-box; }
         
@@ -30,22 +31,17 @@
         .trim-handle { position: absolute; height: 100%; width: 12px; top: 0; z-index: 10; cursor: ew-resize; display: flex; justify-content: center; }
         .trim-handle::after { content: ''; width: 2px; height: 100%; background: #3ea6ff; box-shadow: 0 0 6px #3ea6ff; }
 
-        :root { --scrollbar-thumb: transparent; }
-
         .scroll-container { width: 100%; height: 12px; overflow-x: scroll; overflow-y: hidden; margin-bottom: 12px; display: block; transition: 0.3s; }
         .scroll-container::-webkit-scrollbar { height: 8px; background: transparent; }
-        .scroll-container::-webkit-scrollbar-thumb { 
-            background: var(--scrollbar-thumb); 
-            border-radius: 4px;
-            transition: background 0.3s ease;
-        }
+        .scroll-container::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; transition: background 0.3s ease; }
         .scroll-dummy { height: 1px; }
 
-        button { border: none; cursor: pointer; transition: 0.2s; font-weight: bold; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
+        /* --- 修正箇所：ダブルタップズーム防止を追加 --- */
+        button { border: none; cursor: pointer; transition: 0.2s; font-weight: bold; display: flex; align-items: center; justify-content: center; box-sizing: border-box; touch-action: manipulation; }
         button:hover { opacity: 0.8; }
 
         .playback-ctrls { display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 10px; width: 100%; }
-        .btn-play { background: #fff; color: #000; width: 160px; height: 44px; border-radius: 22px; font-size: 16px; font-weight: bold; flex-direction: column; }
+        .btn-play { background: #fff; color: #000; width: 160px; height: 44px; border-radius: 22px; font-size: 16px; flex-direction: column; }
         .btn-speed { background: #333; color: #3ea6ff; height: 44px; padding: 0 12px; border-radius: 6px; font-size: 14px; min-width: 70px; }
         .btn-frame { background: #444; color: #fff; height: 44px; padding: 0 14px; border-radius: 4px; font-size: 14px; }
 
@@ -56,7 +52,7 @@
         .time-item { display: flex; align-items: center; gap: 8px; }
         .time-item label { font-size: 13px; color: #888; min-width: 55px; font-weight: bold; }
         .time-ctrls { display: flex; gap: 4px; align-items: center; flex: 1; }
-        .time-ctrls input { width: 90px; height: 36px; padding: 0 6px; background: #0f0f0f; color: #fff; border: 1px solid #444; border-radius: 4px; font-family: monospace; font-size: 14px; box-sizing: border-box; }
+        .time-ctrls input { width: 90px; height: 36px; padding: 0 6px; background: #0f0f0f; color: #fff; border: 1px solid #444; border-radius: 4px; font-family: monospace; font-size: 14px; }
         
         .btn-set { background: #3ea6ff; color: white; height: 36px; font-size: 13px; border-radius: 4px; max-width: 60px; flex: 1; }
         .btn-jump { background: #555; color: white; height: 36px; padding: 0 12px; font-size: 13px; border-radius: 4px; }
@@ -69,37 +65,30 @@
         .btn-main { background: #cc0000; color: white; height: 40px; padding: 0 16px; border-radius: 6px; font-size: 14px; }
         .btn-clear-text { background: #2a2a2a; color: #888; height: 40px; padding: 0 14px; font-size: 14px; border-radius: 6px; }
 
-        #output-url { width: 100%; padding: 8px; margin-top: 8px; background: #0f0f0f; border: 1px solid #333; color: #00ff41; font-family: monospace; font-size: 11px; border-radius: 4px; box-sizing: border-box; }
-
         @media (max-width: 600px) {
-            .playback-ctrls { gap: 4px; }
-            .btn-play { width: 130px; height: 38px; font-size: 11px; border-radius: 19px; }
+            .btn-play { width: 130px; height: 38px; font-size: 11px; }
             .btn-speed { font-size: 10px; min-width: 45px; height: 38px; padding: 0 4px; }
             .btn-frame { font-size: 10px; height: 38px; padding: 0 8px; }
             .btn-nav { font-size: 10px; padding: 7px 0; }
             .time-panel { grid-template-columns: 1fr; }
             .time-item label { font-size: 11px; min-width: 25px; }
             .time-ctrls input { font-size: 12px; max-width: 85px; height: 32px; }
-            .btn-set, .btn-jump, .btn-reset-text { font-size: 10px; height: 32px; max-width: none; }
+            .btn-set, .btn-jump, .btn-reset-text { font-size: 10px; height: 32px; }
             .btn-main, .btn-sub, .btn-clear-text { font-size: 12px; height: 36px; padding: 0 10px; }
-            #v-url { height: 36px; }
+            .scroll-container { display: none; }
             .zoom-viewport { overflow-x: auto; margin-bottom: 12px; }
             .zoom-viewport::-webkit-scrollbar { display: block; height: 4px; }
-            .scroll-container { display: none; }
         }
     </style>
 </head>
 <body>
-
 <div class="wrapper">
     <div id="player-box"><div id="player"></div></div>
     <div class="status-line"><span id="fixed-time">00:00:00</span></div>
-
     <div class="full-nav-bar" onclick="seekFull(event)">
         <div id="full-trim-range"></div>
         <div id="full-play-head"></div>
     </div>
-
     <div class="zoom-ctrls">
         <span>ズーム:</span>
         <button onclick="changeZoom(-5)">－</button>
@@ -107,7 +96,6 @@
         <button onclick="changeZoom(5)">＋</button>
         <span id="zoom-val">1x</span>
     </div>
-
     <div class="zoom-viewport" id="z-viewport" onmousedown="seekZoom(event)">
         <div class="zoom-content" id="z-content">
             <div id="zoom-trim-bar"></div>
@@ -116,11 +104,9 @@
             <div class="trim-handle" id="h-end" onmousedown="dragH(event, 'end')"></div>
         </div>
     </div>
-
     <div class="scroll-container" id="scroll-bar-container" onscroll="syncView(this)">
         <div class="scroll-dummy" id="scroll-bar-dummy"></div>
     </div>
-
     <div class="playback-ctrls">
         <button class="btn-frame" onclick="step(-0.033)">◁1コマ</button>
         <button class="btn-speed" id="speed-down-btn" onclick="changeSpeed(-0.25)">速度▼</button>
@@ -132,7 +118,6 @@
         <button class="btn-speed" id="speed-up-btn" onclick="changeSpeed(0.25)">速度▲</button>
         <button class="btn-frame" onclick="step(0.033)">1コマ▷</button>
     </div>
-
     <div class="nav-grid">
         <button class="btn-nav" onclick="sk(-60)">-1分</button>
         <button class="btn-nav" onclick="sk(-30)">-30秒</button>
@@ -145,7 +130,6 @@
         <button class="btn-nav" onclick="sk(5)">+5秒</button>
         <button class="btn-nav" onclick="sk(3)">+3秒</button>
     </div>
-
     <div class="time-panel">
         <div class="time-item">
             <label id="start-label">開始地点</label>
@@ -166,7 +150,6 @@
             </div>
         </div>
     </div>
-
     <div class="footer-area">
         <div class="input-row">
             <input type="text" id="v-url" placeholder="YouTube URL貼り付け">
@@ -184,7 +167,6 @@
     const tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
     document.head.appendChild(tag);
-
     function focusP() { const f = document.getElementById('player'); if(f) f.focus(); }
     function fmt(s) {
         const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = Math.floor(s%60);
@@ -194,7 +176,6 @@
         const parts = str.split(':').map(Number);
         return (parts[0]||0)*3600 + (parts[1]||0)*60 + (parts[2]||0);
     }
-
     function adjustLabels() {
         const isMobile = window.innerWidth <= 600;
         document.getElementById('pc-play-text').style.display = isMobile ? 'none' : 'inline';
@@ -206,12 +187,7 @@
     }
     window.addEventListener('resize', adjustLabels);
     window.addEventListener('DOMContentLoaded', adjustLabels);
-
-    async function pstV() {
-        try { const t = await navigator.clipboard.readText(); document.getElementById('v-url').value = t; } catch(e){}
-        focusP();
-    }
-
+    async function pstV() { try { const t = await navigator.clipboard.readText(); document.getElementById('v-url').value = t; } catch(e){} }
     function onYouTubeIframeAPIReady() {
         const u = new URLSearchParams(window.location.search), v = u.get('v');
         if (v) {
@@ -221,22 +197,14 @@
             init(v);
         }
     }
-
     function init(vid) {
         if (p) p.destroy();
         p = new YT.Player('player', {
             videoId: vid,
             playerVars: { 'autoplay': 1, 'controls': 1, 'rel': 0 },
-            events: { 
-                'onReady': () => { 
-                    updateUI(); 
-                    runLoop(); 
-                    p.setPlaybackRate(currentSpeed);
-                } 
-            }
+            events: { 'onReady': () => { updateUI(); runLoop(); p.setPlaybackRate(currentSpeed); } }
         });
     }
-
     function loadV() {
         const url = document.getElementById('v-url').value;
         const id = url.match(/(?:v=|\/v\/|youtu.be\/|shorts\/|live\/)([^#\&\?]*)/)?.[1];
@@ -247,45 +215,32 @@
             init(id);
         }
     }
-
     function changeSpeed(delta) {
         if (!p || !p.setPlaybackRate) return;
         currentSpeed = Math.max(0.25, Math.min(2, currentSpeed + delta));
         p.setPlaybackRate(currentSpeed);
         document.getElementById('speed-display').innerText = currentSpeed.toFixed(2) + "x";
-        focusP();
     }
-
     function updateZoom() {
         zoom = document.getElementById('zoom-slider').value;
         document.getElementById('zoom-val').innerText = zoom + "x";
         const contentWidth = (zoom * 100);
         document.getElementById('z-content').style.width = contentWidth + "%";
         document.getElementById('scroll-bar-dummy').style.width = contentWidth + "%";
-        
         const root = document.documentElement;
-        if (zoom > 1) {
-            root.style.setProperty('--scrollbar-thumb', '#555');
-        } else {
-            root.style.setProperty('--scrollbar-thumb', 'transparent');
-        }
-        
+        root.style.setProperty('--scrollbar-thumb', zoom > 1 ? '#555' : 'transparent');
         updateUI();
-        centerPlayhead(); // ズーム時、停止中もヘッドを中央にする
+        centerPlayhead();
     }
-
     function changeZoom(d) {
         const s = document.getElementById('zoom-slider');
         s.value = Math.max(1, Math.min(100, parseInt(s.value) + d));
         updateZoom();
     }
-
     function syncView(scroller) {
         const viewport = document.getElementById('z-viewport');
         viewport.scrollLeft = scroller.scrollLeft;
     }
-
-    // 再生ヘッドを画面中央に持ってくる処理
     function centerPlayhead() {
         if (!p || !p.getCurrentTime || zoom <= 1) return;
         const vp = document.getElementById('z-viewport');
@@ -294,35 +249,27 @@
         vp.scrollLeft = scrollPos;
         document.getElementById('scroll-bar-container').scrollLeft = scrollPos;
     }
-
     function updateUI() {
         if (!p || !p.getDuration) return;
         const total = p.getDuration(), s = toSec(document.getElementById('t-start').value), e = toSec(document.getElementById('t-end').value), n = p.getCurrentTime();
-        
         document.getElementById('full-play-head').style.left = (n/total*100) + "%";
         const fr = document.getElementById('full-trim-range');
         if (e > s) { fr.style.left = (s/total*100) + "%"; fr.style.width = ((e-s)/total*100) + "%"; } else { fr.style.width = "0%"; }
-        
         document.getElementById('zoom-play-head').style.left = (n/total*100) + "%";
         document.getElementById('h-start').style.left = (s/total*100) + "%";
         document.getElementById('h-end').style.left = (e/total*100) + "%";
         const zr = document.getElementById('zoom-trim-bar');
         if (e > s) { zr.style.left = (s/total*100) + "%"; zr.style.width = ((e-s)/total*100) + "%"; } else { zr.style.width = "0%"; }
     }
-
     function seekFull(e) {
         const rect = e.currentTarget.getBoundingClientRect();
         p.seekTo(p.getDuration() * (e.clientX - rect.left) / rect.width);
-        focusP();
     }
-
     function seekZoom(e) {
         if (e.target.classList.contains('trim-handle')) return;
         const rect = document.getElementById('z-content').getBoundingClientRect();
         p.seekTo(p.getDuration() * (e.clientX - rect.left) / rect.width);
-        focusP();
     }
-
     function dragH(e, type) {
         e.stopPropagation();
         const content = document.getElementById('z-content'), total = p.getDuration();
@@ -336,7 +283,6 @@
         window.addEventListener('mousemove', onMove);
         window.addEventListener('mouseup', onUp);
     }
-
     function runLoop() {
         if (loop) clearInterval(loop);
         loop = setInterval(() => {
@@ -344,27 +290,21 @@
             const s = toSec(document.getElementById('t-start').value), e = toSec(document.getElementById('t-end').value), n = p.getCurrentTime();
             document.getElementById('fixed-time').innerText = fmt(n);
             updateUI();
-            
-            if (zoom > 1 && p.getPlayerState() === 1) {
-                centerPlayhead();
-            }
+            if (zoom > 1 && p.getPlayerState() === 1) centerPlayhead();
             if (p.getPlayerState() === 1 && e > s && (n >= e || n < s - 1)) p.seekTo(s);
         }, 100);
     }
-
     function togglePlay() { p.getPlayerState()==1 ? p.pauseVideo() : p.playVideo(); focusP(); }
     function step(s) { p.pauseVideo(); p.seekTo(p.getCurrentTime()+s, true); focusP(); }
     function sk(s) { p.seekTo(p.getCurrentTime()+s, true); focusP(); }
     function setT(t) { document.getElementById('t-'+t).value = fmt(p.getCurrentTime()); updateUI(); focusP(); }
     function resetT(t) { document.getElementById('t-'+t).value = "00:00:00"; updateUI(); focusP(); }
     function jumpT(t) { p.seekTo(toSec(document.getElementById('t-'+t).value), true); focusP(); }
-
     function genUrl() {
         const id = p.getVideoData().video_id, s = toSec(document.getElementById('t-start').value), e = toSec(document.getElementById('t-end').value);
         const url = `${window.location.href.split('?')[0]}?v=${id}&s=${s}&e=${e}`;
         document.getElementById('output-url').value = url;
         navigator.clipboard.writeText(url); alert("コピーしました！");
-        focusP();
     }
 </script>
 </body>
